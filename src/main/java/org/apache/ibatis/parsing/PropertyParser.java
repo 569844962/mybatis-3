@@ -46,14 +46,18 @@ public class PropertyParser {
   private static final String ENABLE_DEFAULT_VALUE = "false";
   private static final String DEFAULT_VALUE_SEPARATOR = ":";
 
-  private PropertyParser() {
+  private PropertyParser() { // <1>
     // Prevent Instantiation
   }
 
-  public static String parse(String string, Properties variables) {
+  public static String parse(String string, Properties variables) { // <2>
+    // <2.1> 创建 VariableTokenHandler 对象
     VariableTokenHandler handler = new VariableTokenHandler(variables);
+    // <2.2> 创建 GenericTokenParser 对象
     GenericTokenParser parser = new GenericTokenParser("${", "}", handler);
-    return parser.parse(string);
+    // <2.3> 执行解析
+      String parse = parser.parse(string);
+      return parse;
   }
 
   private static class VariableTokenHandler implements TokenHandler {
@@ -63,6 +67,9 @@ public class PropertyParser {
 
     private VariableTokenHandler(Properties variables) {
       this.variables = variables;
+      /**
+       *  是否开启默认值功能。默认为 {@link #ENABLE_DEFAULT_VALUE}
+       */
       this.enableDefaultValue = Boolean.parseBoolean(getPropertyValue(KEY_ENABLE_DEFAULT_VALUE, ENABLE_DEFAULT_VALUE));
       this.defaultValueSeparator = getPropertyValue(KEY_DEFAULT_VALUE_SEPARATOR, DEFAULT_VALUE_SEPARATOR);
     }

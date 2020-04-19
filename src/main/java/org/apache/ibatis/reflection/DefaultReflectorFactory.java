@@ -15,6 +15,8 @@
  */
 package org.apache.ibatis.reflection;
 
+import org.apache.ibatis.session.Configuration;
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -38,11 +40,16 @@ public class DefaultReflectorFactory implements ReflectorFactory {
   @Override
   public Reflector findForClass(Class<?> type) {
     if (classCacheEnabled) {
-            // synchronized (type) removed see issue #461
+      // synchronized (type) removed see issue #461
       return reflectorMap.computeIfAbsent(type, Reflector::new);
     } else {
       return new Reflector(type);
     }
+  }
+
+  public static void main(String[] args) {
+    Reflector reflector = new Reflector(Configuration.class);
+    System.out.println(1);
   }
 
 }

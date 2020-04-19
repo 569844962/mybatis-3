@@ -15,6 +15,10 @@
  */
 package org.apache.ibatis.type;
 
+import org.apache.ibatis.binding.MapperMethod.ParamMap;
+import org.apache.ibatis.io.ResolverUtil;
+import org.apache.ibatis.io.Resources;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
@@ -22,30 +26,11 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.Month;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.Year;
-import java.time.YearMonth;
-import java.time.ZonedDateTime;
+import java.time.*;
 import java.time.chrono.JapaneseDate;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.ibatis.binding.MapperMethod.ParamMap;
-import org.apache.ibatis.io.ResolverUtil;
-import org.apache.ibatis.io.Resources;
 
 /**
  * @author Clinton Begin
@@ -314,20 +299,27 @@ public final class TypeHandlerRegistry {
 
   // Only handler
 
-  @SuppressWarnings("unchecked")
+/**
+ * 只有typeHandler参数的register重载方法
+ *
+ */
   public <T> void register(TypeHandler<T> typeHandler) {
     boolean mappedTypeFound = false;
+    //1> 获取@MappedTypes注解，存在javaType值，则调用register(Type javaType, TypeHandler<? extends T> typeHandler)方法注册typehandler
     MappedTypes mappedTypes = typeHandler.getClass().getAnnotation(MappedTypes.class);
     if (mappedTypes != null) {
       for (Class<?> handledType : mappedTypes.value()) {
+        //调用重载方法register(Type javaType, TypeHandler<? extends T> typeHandler)
         register(handledType, typeHandler);
         mappedTypeFound = true;
       }
     }
     // @since 3.1.0 - try to auto-discover the mapped type
+    //自动发现映射类型
     if (!mappedTypeFound && typeHandler instanceof TypeReference) {
       try {
         TypeReference<T> typeReference = (TypeReference<T>) typeHandler;
+        //调用重载方法register(Type javaType, TypeHandler<? extends T> typeHandler)
         register(typeReference.getRawType(), typeHandler);
         mappedTypeFound = true;
       } catch (Throwable t) {
@@ -345,12 +337,16 @@ public final class TypeHandlerRegistry {
     register((Type) javaType, typeHandler);
   }
 
+
   private <T> void register(Type javaType, TypeHandler<? extends T> typeHandler) {
+    //1> 获取typahandler类中@MappedJdbcTypes注解value值
     MappedJdbcTypes mappedJdbcTypes = typeHandler.getClass().getAnnotation(MappedJdbcTypes.class);
     if (mappedJdbcTypes != null) {
+      //2> 遍历MappedJdbcTypes的value值，进行遍历注册TypeHandler
       for (JdbcType handledJdbcType : mappedJdbcTypes.value()) {
         register(javaType, handledJdbcType, typeHandler);
       }
+      //3> 如果MappedJdbcTypes注解中includeNullJdbcType=true,则注册jdbcType=null的TypeHandler
       if (mappedJdbcTypes.includeNullJdbcType()) {
         register(javaType, null, typeHandler);
       }
@@ -369,8 +365,15 @@ public final class TypeHandlerRegistry {
     register((Type) type, jdbcType, handler);
   }
 
+  /**
+   * 注册TypeHandler
+   * @param javaType
+   * @param jdbcType
+   * @param handler
+   */
   private void register(Type javaType, JdbcType jdbcType, TypeHandler<?> handler) {
     if (javaType != null) {
+      //1> 存储以javaType为key的 Map<JdbcType, TypeHandler<?>>到TYPE_HANDLER_MAP变量中
       Map<JdbcType, TypeHandler<?>> map = TYPE_HANDLER_MAP.get(javaType);
       if (map == null || map == NULL_TYPE_HANDLER_MAP) {
         map = new HashMap<>();
@@ -378,20 +381,22 @@ public final class TypeHandlerRegistry {
       }
       map.put(jdbcType, handler);
     }
+    //2> 添加TypeHandler到ALL_TYPE_HANDLERS_MAP
     ALL_TYPE_HANDLERS_MAP.put(handler.getClass(), handler);
   }
 
-  //
-  // REGISTER CLASS
-  //
-
-  // Only handler type
-
+    /**
+     * 存在@MappedTypes，且有值，则存在javaType，调用register(Class<?> javaTypeClass, Class<?> typeHandlerClass)重载方法
+     * 不存在@MappedTypes或者没有值，则调用register(TypeHandler<T> typeHandler)重载方法
+     */
   public void register(Class<?> typeHandlerClass) {
     boolean mappedTypeFound = false;
+    //1> 获取@MappedTypes注解
     MappedTypes mappedTypes = typeHandlerClass.getAnnotation(MappedTypes.class);
     if (mappedTypes != null) {
+        //2> 遍历@MappedTypes注解中value值
       for (Class<?> javaTypeClass : mappedTypes.value()) {
+          //3> 调用register重载方法进行注册
         register(javaTypeClass, typeHandlerClass);
         mappedTypeFound = true;
       }
@@ -441,10 +446,16 @@ public final class TypeHandlerRegistry {
 
   // scan
 
+  /**
+   * 注册TypeHandler,自动扫描类型处理器
+   * @param packageName 包路径
+   */
   public void register(String packageName) {
+    //1> 获取包下的类
     ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
     resolverUtil.find(new ResolverUtil.IsA(TypeHandler.class), packageName);
     Set<Class<? extends Class<?>>> handlerSet = resolverUtil.getClasses();
+    //2> 注册TypeHandler，非内部类，接口，抽象类才能注册
     for (Class<?> type : handlerSet) {
       //Ignore inner classes and interfaces (including package-info.java) and abstract classes
       if (!type.isAnonymousClass() && !type.isInterface() && !Modifier.isAbstract(type.getModifiers())) {

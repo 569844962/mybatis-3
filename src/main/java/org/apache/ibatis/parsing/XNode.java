@@ -15,16 +15,13 @@
  */
 package org.apache.ibatis.parsing;
 
+import org.w3c.dom.CharacterData;
+import org.w3c.dom.*;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
-import org.w3c.dom.CharacterData;
-import org.w3c.dom.Element;
-import org.w3c.dom.NamedNodeMap;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 
 /**
  * @author Clinton Begin
@@ -209,10 +206,21 @@ public class XNode {
     }
   }
 
+  /**
+   * 获取指定属性的值
+   * @param name 属性名称
+   * @return 属性值
+   */
   public String getStringAttribute(String name) {
     return getStringAttribute(name, null);
   }
 
+  /**
+   * 获取指定属性的值
+   * @param name 属性名称
+   * @param def 默认值
+   * @return 属性值
+   */
   public String getStringAttribute(String name, String def) {
     String value = attributes.getProperty(name);
     if (value == null) {
@@ -287,6 +295,9 @@ public class XNode {
     }
   }
 
+  /**
+   * 获取节点的子节点XNode
+   */
   public List<XNode> getChildren() {
     List<XNode> children = new ArrayList<>();
     NodeList nodeList = node.getChildNodes();
@@ -301,6 +312,9 @@ public class XNode {
     return children;
   }
 
+  /**
+   * 获取子节点的Properties属性 name 和 value
+   */
   public Properties getChildrenAsProperties() {
     Properties properties = new Properties();
     for (XNode child : getChildren()) {
@@ -347,6 +361,12 @@ public class XNode {
     return builder.toString();
   }
 
+  /**
+   * 获取节点的属性值，并赋值到Properties中
+   * 如：<environment id="development"> 则获取到id="development"
+   * @param n 节点
+   * @return Properties
+   */
   private Properties parseAttributes(Node n) {
     Properties attributes = new Properties();
     NamedNodeMap attributeNodes = n.getAttributes();
@@ -375,7 +395,13 @@ public class XNode {
     return data;
   }
 
+  /**
+   * 获取节点的内容（CDATASection || Text）
+   * @param child
+   * @return
+   */
   private String getBodyData(Node child) {
+    //节点类型如果是CDATASection || Text
     if (child.getNodeType() == Node.CDATA_SECTION_NODE
         || child.getNodeType() == Node.TEXT_NODE) {
       String data = ((CharacterData) child).getData();

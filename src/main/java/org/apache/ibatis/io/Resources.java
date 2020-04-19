@@ -125,7 +125,9 @@ public class Resources {
    */
   public static Properties getResourceAsProperties(String resource) throws IOException {
     Properties props = new Properties();
+    //1> 获取resource输入流
     try (InputStream in = getResourceAsStream(resource)) {
+      //2> 加载输入流中的配置
       props.load(in);
     }
     return props;
@@ -244,7 +246,9 @@ public class Resources {
    */
   public static Properties getUrlAsProperties(String urlString) throws IOException {
     Properties props = new Properties();
+    //1> 通过URLConnection，获取url输入流
     try (InputStream in = getUrlAsStream(urlString)) {
+      //2> 加载输入流中的配置
       props.load(in);
     }
     return props;
